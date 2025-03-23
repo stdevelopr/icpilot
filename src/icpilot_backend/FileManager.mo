@@ -11,6 +11,15 @@ import Types "Types";
 
 module {
   public class FileManager() {
+    private func getFileNameFromPath(path : Text) : Text {
+      let parts = Text.split(path, #char '/');
+      let parts_array = Iter.toArray(parts);
+      if (parts_array.size() > 0) {
+        parts_array[parts_array.size() - 1];
+      } else {
+        path;
+      };
+    };
     private let fileMetadataStorage = HashMap.HashMap<Text, Types.FileMetadata>(50, Text.equal, Text.hash);
     private let fileContentStorage = HashMap.HashMap<Text, Types.FileContent>(50, Text.equal, Text.hash);
     private var fileMetadataEntries : Types.FileMetadataStorage = [];
@@ -25,7 +34,7 @@ module {
     public func postupgrade(storedMetadata : Types.FileMetadataStorage, storedContent : Types.FileContentStorage) {
       fileMetadataEntries := storedMetadata;
       fileContentEntries := storedContent;
-      
+
       for ((fileId, metadata) in fileMetadataEntries.vals()) {
         fileMetadataStorage.put(fileId, metadata);
       };
@@ -35,18 +44,22 @@ module {
       };
     };
 
-    public func uploadFile(caller : Principal, fileName : Text, contentType : Text, content : Types.FileContent) : async Result.Result<Text, Text> {
+    public func uploadFile(caller : Principal, filePath : Text, contentType : Text, content : Types.FileContent) : async Result.Result<Text, Text> {
       try {
-        let fileId = Text.concat(Principal.toText(caller), Text.concat("_", fileName));
+        let fileId = Text.concat(Principal.toText(caller), Text.concat("_", filePath));
         let currentTime = Time.now();
+        let fileName = getFileNameFromPath(filePath);
+        let isDirectory = Blob.toArray(content).size() == 0;
 
         let fileMetadata : Types.FileMetadata = {
           name = fileName;
+          path = filePath;
           contentType = contentType;
           size = Blob.toArray(content).size();
           createdAt = currentTime;
           updatedAt = currentTime;
           owner = caller;
+          isDirectory = isDirectory;
         };
 
         fileMetadataStorage.put(fileId, fileMetadata);
@@ -83,6 +96,27 @@ module {
       );
     };
 
+    public func getFilesInDirectory(caller : Principal, dirPath : Text) : [Types.FileInfo] {
+      let allFiles = Iter.toArray(fileMetadataStorage.entries());
+      let normalizedDirPath = if (Text.endsWith(dirPath, #char '/')) { dirPath } else {
+        Text.concat(dirPath, "/");
+      };
+
+      Array.mapFilter<(Text, Types.FileMetadata), Types.FileInfo>(
+        allFiles,
+        func((id, metadata) : (Text, Types.FileMetadata)) : ?Types.FileInfo {
+          if (
+            Principal.equal(metadata.owner, caller) and
+            (Text.startsWith(metadata.path, #text normalizedDirPath) or metadata.path == Text.trimEnd(normalizedDirPath, #char '/'))
+          ) {
+            ?{ id = id; metadata = metadata };
+          } else {
+            null;
+          };
+        },
+      );
+    };
+
     public func getAllFiles() : [Types.FileInfo] {
       let allFiles = Iter.toArray(fileMetadataStorage.entries());
 
@@ -111,4 +145,4 @@ module {
       };
     };
   };
-}
+};

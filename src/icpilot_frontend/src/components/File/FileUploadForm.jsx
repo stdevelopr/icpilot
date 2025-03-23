@@ -11,12 +11,15 @@ const FileUploadForm = ({
   return (
     <form onSubmit={onSubmit} className="file-upload-form">
       <div className="form-group">
-        <label htmlFor="file">Select File:</label>
+        <label htmlFor="file">Select File or Folder:</label>
         <input 
           type="file" 
           id="file" 
           onChange={onFileSelect} 
           disabled={isLoading}
+          webkitdirectory=""
+          directory=""
+          multiple
         />
       </div>
       

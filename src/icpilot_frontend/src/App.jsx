@@ -3,7 +3,7 @@ import { icpilot_backend } from 'declarations/icpilot_backend';
 import { convertBigIntValues } from './utils';
 import Message from './components/UI/Message';
 import Tabs from './components/UI/Tabs';
-import FileItem from './components/File/FileItem';
+import FileTree from './components/File/FileTree';
 import FileUploadForm from './components/File/FileUploadForm';
 import FilePreview from './components/File/FilePreview';
 import CanisterList from './components/Canister/CanisterList';
@@ -37,6 +37,8 @@ function App() {
   async function fetchFiles() {
     try {
       const userFiles = await icpilot_backend.getMyFiles();
+
+      console.log("Raw files:", userFiles); // Log raw response for debugging
       // Convert BigInt values to regular numbers or strings
       setFiles(convertBigIntValues(userFiles));
     } catch (error) {
@@ -69,7 +71,14 @@ function App() {
     event.preventDefault();
     
     if (!selectedFile) {
-      setMessage({ type: 'error', text: 'Please select a file to upload' });
+      setMessage({ type: 'error', text: 'Please select files to upload' });
+      return;
+    }
+
+    // Handle multiple files from directory upload
+    const files = Array.from(selectedFile);
+    if (files.length === 0) {
+      setMessage({ type: 'error', text: 'No files selected' });
       return;
     }
 
@@ -77,43 +86,61 @@ function App() {
     setMessage(null);
 
     try {
-      // Read the file as an ArrayBuffer
-      const fileReader = new FileReader();
-      
-      fileReader.onload = async () => {
+      let successCount = 0;
+      let failureCount = 0;
+
+      for (const file of files) {
         try {
+          // Create a new FileReader for each file
+          const fileReader = new FileReader();
+          
+          // Convert the file reading to a Promise
+          const arrayBuffer = await new Promise((resolve, reject) => {
+            fileReader.onload = () => resolve(fileReader.result);
+            fileReader.onerror = () => reject(new Error('Error reading file'));
+            fileReader.readAsArrayBuffer(file);
+          });
+
           // Convert ArrayBuffer to Uint8Array
-          const uint8Array = new Uint8Array(fileReader.result);
+          const uint8Array = new Uint8Array(arrayBuffer);
+          
+          // Get the relative path if it exists (for directory upload)
+          const filePath = file.webkitRelativePath || file.name;
           
           // Upload the file
           const result = await icpilot_backend.uploadFile(
-            fileName || selectedFile.name,
-            selectedFile.type || 'application/octet-stream',
+            filePath,
+            file.type || 'application/octet-stream',
             [...uint8Array]
           );
           
           if ("ok" in result) {
-            setMessage({ type: 'success', text: `Successfully uploaded file: ${fileName || selectedFile.name}` });
-            fetchFiles();
-            setSelectedFile(null);
-            setFileName('');
+            successCount++;
           } else {
-            setMessage({ type: 'error', text: `Failed to upload file: ${result.err}` });
+            failureCount++;
+            console.error(`Failed to upload ${filePath}:`, result.err);
           }
         } catch (error) {
-          console.error("Error in file upload:", error);
-          setMessage({ type: 'error', text: `Error uploading file: ${error.message}` });
-        } finally {
-          setFileLoading(false);
+          failureCount++;
+          console.error(`Error uploading ${file.name}:`, error);
         }
-      };
+      }
+
+      // Update UI with final status
+      if (successCount > 0) {
+        setMessage({
+          type: failureCount === 0 ? 'success' : 'warning',
+          text: `Successfully uploaded ${successCount} file${successCount !== 1 ? 's' : ''}`+
+                (failureCount > 0 ? `, ${failureCount} failed` : '')
+        });
+        fetchFiles();
+      } else {
+        setMessage({ type: 'error', text: 'All uploads failed' });
+      }
       
-      fileReader.onerror = () => {
-        setMessage({ type: 'error', text: 'Error reading file' });
-        setFileLoading(false);
-      };
-      
-      fileReader.readAsArrayBuffer(selectedFile);
+      // Reset form
+      setSelectedFile(null);
+      setFileName('');
     } catch (error) {
       setMessage({ type: 'error', text: `Error: ${error.message}` });
       setFileLoading(false);
@@ -227,8 +254,20 @@ function App() {
   }
 
   function handleFileSelect(event) {
-    const file = event.target.files[0];
-    setSelectedFile(file);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setSelectedFile(files);
+      setMessage(null); // Clear any previous error messages
+      console.log(`Selected ${files.length} file(s) for upload`);
+      // Update UI to show number of files selected
+      setMessage({
+        type: 'info',
+        text: `${files.length} file${files.length > 1 ? 's' : ''} selected for upload`
+      });
+    } else {
+      setSelectedFile(null);
+      setMessage({ type: 'error', text: 'No files selected' });
+    }
   }
 
   function closeFilePreview() {
@@ -322,20 +361,12 @@ function App() {
           />
 
           {files.length > 0 ? (
-            <div className="file-list">
-              <h3>Your Files</h3>
-              <ul>
-                {files.map((file, index) => (
-                  <FileItem 
-                    key={index}
-                    file={file}
-                    onView={() => handleViewFile(file.id)}
-                    onDelete={() => handleFileDelete(file.id)}
-                    isLoading={fileLoading}
-                  />
-                ))}
-              </ul>
-            </div>
+            <FileTree
+              files={files}
+              onView={handleViewFile}
+              onDelete={handleFileDelete}
+              isLoading={fileLoading}
+            />
           ) : (
             <div className="no-files">
               <p>You haven't uploaded any files yet.</p>

@@ -1,0 +1,85 @@
+.fileTree {
+  padding: 1rem;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.treeNode {
+  margin-left: 1.5rem;
+}
+
+.directory {
+  margin: 0.5rem 0;
+}
+
+.dirHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.dirHeader:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dirName {
+  font-weight: 500;
+}
+
+.dirContent {
+  margin-left: 1rem;
+  border-left: 1px solid #e5e7eb;
+  padding-left: 1rem;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  margin: 0.25rem 0;
+  border-radius: 4px;
+}
+
+.file:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.fileName {
+  flex: 1;
+}
+
+.fileActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.viewBtn,
+.deleteBtn {
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  background-color: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.viewBtn:hover {
+  background-color: #f3f4f6;
+}
+
+.deleteBtn {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.deleteBtn:hover {
+  background-color: #fef2f2;
+}
+
+.folderIcon,
+.fileIcon {
+  font-size: 1.25rem;
+}

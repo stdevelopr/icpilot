@@ -17,11 +17,13 @@ module {
   // File storage related types
   public type FileMetadata = {
     name : Text;
+    path : Text;
     contentType : Text;
     size : Nat;
     createdAt : Int;
     updatedAt : Int;
     owner : Principal;
+    isDirectory : Bool;
   };
 
   public type FileInfo = {
@@ -35,4 +37,4 @@ module {
   public type CanisterStorage = [(Principal, List.List<CanisterInfo>)];
   public type FileMetadataStorage = [(Text, FileMetadata)];
   public type FileContentStorage = [(Text, FileContent)];
-}
+};

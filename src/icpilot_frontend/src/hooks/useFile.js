@@ -36,9 +36,12 @@ export function useFile() {
           // Convert ArrayBuffer to Uint8Array
           const uint8Array = new Uint8Array(fileReader.result);
           
+          // Get the file path, preserving directory structure
+          const filePath = file.webkitRelativePath || customFileName || file.name;
+          
           // Upload the file
           const result = await icpilot_backend.uploadFile(
-            customFileName || file.name,
+            filePath,
             file.type || 'application/octet-stream',
             [...uint8Array]
           );
