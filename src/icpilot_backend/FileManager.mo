@@ -116,6 +116,51 @@ module {
         },
       );
     };
+    
+    // Add a new function to get the folder structure
+    public func getFolderStructure(caller : Principal) : [Text] {
+      let allFiles = Iter.toArray(fileMetadataStorage.entries());
+      let folderPaths = Array.mapFilter<(Text, Types.FileMetadata), Text>(
+        allFiles,
+        func((id, metadata) : (Text, Types.FileMetadata)) : ?Text {
+          if (Principal.equal(metadata.owner, caller)) {
+            let path = metadata.path;
+            let parts = Text.split(path, #char '/');
+            let parts_array = Iter.toArray(parts);
+            
+            if (parts_array.size() > 1) {
+              // Return the directory path without the filename
+              let dirPath = Text.join("/", Iter.fromArray(Array.subArray(parts_array, 0, parts_array.size() - 1)));
+              ?dirPath;
+            } else {
+              null;
+            };
+          } else {
+            null;
+          };
+        },
+      );
+      
+      // Remove duplicates (a simple approach)
+      let uniqueFolders = Array.filter<Text>(
+        folderPaths,
+        func(path : Text) : Bool {
+          var isUnique = true;
+          for (existingPath in folderPaths.vals()) {
+            if (path == existingPath) {
+              if (isUnique) {
+                isUnique := false;
+              } else {
+                return false;
+              };
+            };
+          };
+          return isUnique;
+        },
+      );
+      
+      return uniqueFolders;
+    };
 
     public func getAllFiles() : [Types.FileInfo] {
       let allFiles = Iter.toArray(fileMetadataStorage.entries());

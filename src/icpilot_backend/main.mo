@@ -95,4 +95,9 @@ actor Manager {
   public shared (msg) func deleteFile(fileId : Text) : async Result.Result<(), Text> {
     fileManager.deleteFile(msg.caller, fileId);
   };
+  
+  // Function to get folder structure for the caller
+  public shared (msg) func getFolderStructure() : async [Text] {
+    fileManager.getFolderStructure(msg.caller);
+  };
 };
