@@ -7,6 +7,9 @@ import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Array "mo:base/Array";
 import Result "mo:base/Result";
+import Text "mo:base/Text";
+import Blob "mo:base/Blob";
+import Time "mo:base/Time";
 
 actor Manager {
   let IC = "aaaaa-aa";
@@ -24,19 +27,52 @@ actor Manager {
     metadata : CanisterMetadata;
   };
 
+  // Define types for file storage
+  public type FileMetadata = {
+    name : Text;
+    contentType : Text;
+    size : Nat;
+    createdAt : Int;
+    updatedAt : Int;
+    owner : Principal;
+  };
+
+  public type FileInfo = {
+    id : Text;
+    metadata : FileMetadata;
+  };
+
+  public type FileContent = Blob;
+
   // Mapping of callers (Principal) to their list of canister info
   stable var canisterMap : [(Principal, List.List<CanisterInfo>)] = [];
 
+  // File storage structures
+  stable var fileMetadataEntries : [(Text, FileMetadata)] = [];
+  stable var fileContentEntries : [(Text, FileContent)] = [];
+
   private let canisterStorage = HashMap.HashMap<Principal, List.List<CanisterInfo>>(10, Principal.equal, Principal.hash);
+  private let fileMetadataStorage = HashMap.HashMap<Text, FileMetadata>(50, Text.equal, Text.hash);
+  private let fileContentStorage = HashMap.HashMap<Text, FileContent>(50, Text.equal, Text.hash);
 
   // Restore data after an upgrade
   system func preupgrade() {
     canisterMap := Iter.toArray(canisterStorage.entries());
+    fileMetadataEntries := Iter.toArray(fileMetadataStorage.entries());
+    fileContentEntries := Iter.toArray(fileContentStorage.entries());
   };
 
   system func postupgrade() {
     for ((caller, canisters) in canisterMap.vals()) {
       canisterStorage.put(caller, canisters);
+    };
+
+    for ((fileId, metadata) in fileMetadataEntries.vals()) {
+      fileMetadataStorage.put(fileId, metadata);
+    };
+
+    for ((fileId, content) in fileContentEntries.vals()) {
+      fileContentStorage.put(fileId, content);
     };
   };
 
@@ -118,4 +154,91 @@ actor Manager {
     return "Principal of the actor: " # Principal.toText(principal);
   };
 
+  // File management functions
+
+  // Upload a file
+  public shared (msg) func uploadFile(fileName : Text, contentType : Text, content : Blob) : async Result.Result<Text, Text> {
+    try {
+      let caller = msg.caller;
+      let fileId = Text.concat(Principal.toText(caller), Text.concat("_", fileName));
+      let currentTime = Time.now();
+
+      let fileMetadata : FileMetadata = {
+        name = fileName;
+        contentType = contentType;
+        size = Blob.toArray(content).size();
+        createdAt = currentTime;
+        updatedAt = currentTime;
+        owner = caller;
+      };
+
+      fileMetadataStorage.put(fileId, fileMetadata);
+      fileContentStorage.put(fileId, content);
+
+      Debug.print("File uploaded: " # fileId);
+      return #ok(fileId);
+    } catch (e) {
+      Debug.print("Error uploading file");
+      return #err("Error uploading file");
+    };
+  };
+
+  // Get file metadata
+  public shared query func getFileMetadata(fileId : Text) : async ?FileMetadata {
+    fileMetadataStorage.get(fileId);
+  };
+
+  // Get file content
+  public shared query func getFileContent(fileId : Text) : async ?FileContent {
+    fileContentStorage.get(fileId);
+  };
+
+  // Get all files for the caller
+  public shared (msg) func getMyFiles() : async [FileInfo] {
+    let caller = msg.caller;
+    let allFiles = Iter.toArray(fileMetadataStorage.entries());
+
+    Array.mapFilter<(Text, FileMetadata), FileInfo>(
+      allFiles,
+      func((id, metadata) : (Text, FileMetadata)) : ?FileInfo {
+        if (Principal.equal(metadata.owner, caller)) {
+          ?{ id = id; metadata = metadata };
+        } else {
+          null;
+        };
+      },
+    );
+  };
+
+  // Get all files (admin function)
+  public shared func getAllFiles() : async [FileInfo] {
+    let allFiles = Iter.toArray(fileMetadataStorage.entries());
+
+    Array.map<(Text, FileMetadata), FileInfo>(
+      allFiles,
+      func((id, metadata) : (Text, FileMetadata)) : FileInfo {
+        { id = id; metadata = metadata };
+      },
+    );
+  };
+
+  // Delete a file
+  public shared (msg) func deleteFile(fileId : Text) : async Result.Result<(), Text> {
+    let caller = msg.caller;
+
+    switch (fileMetadataStorage.get(fileId)) {
+      case (null) {
+        return #err("File not found");
+      };
+      case (?metadata) {
+        if (Principal.equal(metadata.owner, caller)) {
+          fileMetadataStorage.delete(fileId);
+          fileContentStorage.delete(fileId);
+          return #ok();
+        } else {
+          return #err("Not authorized to delete this file");
+        };
+      };
+    };
+  };
 };
