@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import styles from './FilePreview.module.css';
 
 const FilePreview = ({ fileContent, onClose, onDownload }) => {
   const isImage = fileContent.contentType.startsWith('image/');
@@ -6,6 +7,7 @@ const FilePreview = ({ fileContent, onClose, onDownload }) => {
   const isText = fileContent.contentType.startsWith('text/');
   const isVideo = fileContent.contentType.startsWith('video/');
   const isAudio = fileContent.contentType.startsWith('audio/');
+  const isJson = fileContent.contentType === 'application/json';
 
   return (
     <div className="file-preview-overlay">
@@ -52,7 +54,35 @@ const FilePreview = ({ fileContent, onClose, onDownload }) => {
             </audio>
           )}
           
-          {!isImage && !isPdf && !isText && !isVideo && !isAudio && (
+          {isJson && (() => {
+            const [jsonContent, setJsonContent] = useState('Loading...');
+            
+            useEffect(() => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                try {
+                  const parsed = JSON.parse(reader.result);
+                  setJsonContent(JSON.stringify(parsed, null, 2));
+                } catch (error) {
+                  console.error('Error parsing JSON:', error);
+                  setJsonContent('Error: Invalid JSON content');
+                }
+              };
+              reader.onerror = () => {
+                console.error('Error reading file:', reader.error);
+                setJsonContent('Error: Unable to read file content');
+              };
+              reader.readAsText(fileContent.blob);
+            }, [fileContent.blob]);
+
+            return (
+              <pre className={styles['json-preview']}>
+                {jsonContent}
+              </pre>
+            );
+          })()}
+          
+          {!isImage && !isPdf && !isText && !isVideo && !isAudio && !isJson && (
             <div className="download-prompt">
               <p>This file type cannot be previewed directly.</p>
               <button onClick={onDownload}>Download File</button>
