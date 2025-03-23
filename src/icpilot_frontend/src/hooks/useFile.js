@@ -1,79 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { icpilot_backend } from 'declarations/icpilot_backend';
-import { convertBigIntValues } from './utils';
-import Message from './components/UI/Message';
-import Tabs from './components/UI/Tabs';
-import FileItem from './components/File/FileItem';
-import FileUploadForm from './components/File/FileUploadForm';
-import FilePreview from './components/File/FilePreview';
-import CanisterList from './components/Canister/CanisterList';
+import { convertBigIntValues } from '../utils';
 
-function App() {
-  const [canisters, setCanisters] = useState([]);
+export function useFile() {
   const [files, setFiles] = useState([]);
-  const [message, setMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [fileLoading, setFileLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState(null);
-  const [fileName, setFileName] = useState('');
-  const [activeTab, setActiveTab] = useState('canisters');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
 
-  // Fetch user's canisters and files on component mount
-  useEffect(() => {
-    fetchCanisters();
-    fetchFiles();
-  }, []);
-
-  async function fetchCanisters() {
-    try {
-      const userCanisters = await icpilot_backend.get_caller_canisters();
-      setCanisters(userCanisters);
-    } catch (error) {
-      console.error("Error fetching canisters:", error);
-    }
-  }
-
-  async function fetchFiles() {
+  const fetchFiles = useCallback(async () => {
     try {
       const userFiles = await icpilot_backend.getMyFiles();
-      // Convert BigInt values to regular numbers or strings
       setFiles(convertBigIntValues(userFiles));
     } catch (error) {
       console.error("Error fetching files:", error);
+      setMessage({ type: 'error', text: `Error fetching files: ${error.message}` });
     }
-  }
+  }, []);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    
-    try {
-      const result = await icpilot_backend.create_canister("My Canister", "This is a description of my canister");
-      
-      if ("ok" in result) {
-        setMessage({ type: 'success', text: `Successfully created canister: ${result.ok}` });
-        fetchCanisters();
-      } else {
-        setMessage({ type: 'error', text: `Failed to create canister: ${result.err}` });
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: `Error: ${error.message}` });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleFileUpload(event) {
-    event.preventDefault();
-    
-    if (!selectedFile) {
+  const uploadFile = useCallback(async (file, customFileName) => {
+    if (!file) {
       setMessage({ type: 'error', text: 'Please select a file to upload' });
       return;
     }
 
-    setFileLoading(true);
+    setLoading(true);
     setMessage(null);
 
     try {
@@ -87,16 +38,14 @@ function App() {
           
           // Upload the file
           const result = await icpilot_backend.uploadFile(
-            fileName || selectedFile.name,
-            selectedFile.type || 'application/octet-stream',
+            customFileName || file.name,
+            file.type || 'application/octet-stream',
             [...uint8Array]
           );
           
           if ("ok" in result) {
-            setMessage({ type: 'success', text: `Successfully uploaded file: ${fileName || selectedFile.name}` });
+            setMessage({ type: 'success', text: `Successfully uploaded file: ${customFileName || file.name}` });
             fetchFiles();
-            setSelectedFile(null);
-            setFileName('');
           } else {
             setMessage({ type: 'error', text: `Failed to upload file: ${result.err}` });
           }
@@ -104,25 +53,25 @@ function App() {
           console.error("Error in file upload:", error);
           setMessage({ type: 'error', text: `Error uploading file: ${error.message}` });
         } finally {
-          setFileLoading(false);
+          setLoading(false);
         }
       };
       
       fileReader.onerror = () => {
         setMessage({ type: 'error', text: 'Error reading file' });
-        setFileLoading(false);
+        setLoading(false);
       };
       
-      fileReader.readAsArrayBuffer(selectedFile);
+      fileReader.readAsArrayBuffer(file);
     } catch (error) {
       setMessage({ type: 'error', text: `Error: ${error.message}` });
-      setFileLoading(false);
+      setLoading(false);
     }
-  }
+  }, [fetchFiles]);
 
-  async function handleFileDelete(fileId) {
+  const deleteFile = useCallback(async (fileId) => {
     try {
-      setFileLoading(true);
+      setLoading(true);
       const result = await icpilot_backend.deleteFile(fileId);
       
       if ("ok" in result) {
@@ -134,33 +83,28 @@ function App() {
     } catch (error) {
       setMessage({ type: 'error', text: `Error deleting file: ${error.message}` });
     } finally {
-      setFileLoading(false);
+      setLoading(false);
     }
-  }
+  }, [fetchFiles]);
 
-  async function handleViewFile(fileId) {
+  const viewFile = useCallback(async (fileId) => {
     try {
-      setFileLoading(true);
+      setLoading(true);
       
       // First get the file metadata to ensure we have the correct information
       const file = files.find(f => f.id === fileId);
       
       if (!file) {
         setMessage({ type: 'error', text: 'File not found in your files list' });
-        setFileLoading(false);
+        setLoading(false);
         return;
       }
       
       const content = await icpilot_backend.getFileContent(fileId);
       
       if (content) {
-        console.log("Raw content:", content);
-        
         // Use the metadata from our files state which is already processed
         const processedMetadata = file.metadata;
-        
-        // Log the metadata to debug
-        console.log("File metadata:", processedMetadata);
         
         // Ensure contentType exists, default to 'application/octet-stream' if not
         const contentType = processedMetadata.contentType || 'application/octet-stream';
@@ -184,21 +128,11 @@ function App() {
         
         extractBytes(content);
         
-        console.log("Extracted bytes length:", bytes.length);
-        
         // Create a Uint8Array from the extracted bytes
         const uint8Array = new Uint8Array(bytes);
         
         // Create a blob with the content type
         const blob = new Blob([uint8Array], { type: contentType });
-        
-        console.log("File preview data:", {
-          name: fileName,
-          contentType: contentType,
-          size: processedMetadata.size,
-          blobSize: blob.size,
-          extractedBytesLength: bytes.length
-        });
         
         // Test the blob content
         if (blob.size > 0) {
@@ -222,32 +156,23 @@ function App() {
       console.error("Error viewing file:", error);
       setMessage({ type: 'error', text: `Error viewing file: ${error.message}` });
     } finally {
-      setFileLoading(false);
+      setLoading(false);
     }
-  }
+  }, [files]);
 
-  function handleFileSelect(event) {
-    const file = event.target.files[0];
-    setSelectedFile(file);
-  }
-
-  function closeFilePreview() {
+  const closeFilePreview = useCallback(() => {
     if (fileContent && fileContent.url) {
       URL.revokeObjectURL(fileContent.url);
     }
     setFileContent(null);
-  }
+  }, [fileContent]);
 
-  // Add this function to handle direct downloads
-  // Improved download function
-  function handleDownload() {
+  const downloadFile = useCallback(() => {
     if (fileContent && fileContent.blob) {
       try {
         // Find the file in our files array to get the correct name
         const file = files.find(f => f.id === fileContent.fileId);
         const fileName = file ? file.metadata.name : fileContent.name || 'download.file';
-        
-        console.log("Downloading file:", fileName, "Size:", fileContent.blob.size);
         
         // Create a download URL directly from the original blob
         const downloadUrl = URL.createObjectURL(fileContent.blob);
@@ -274,85 +199,19 @@ function App() {
       console.error("No file content available for download");
       setMessage({ type: 'error', text: 'No file content available for download' });
     }
-  }
+  }, [fileContent, files]);
 
-  const tabConfig = [
-    { id: 'canisters', label: 'Canister Management' },
-    { id: 'files', label: 'File Management' }
-  ];
-
-  return (
-    <main>
-      <img src="/logo2.svg" alt="DFINITY logo" />
-      <br />
-      <br />
-      
-      <Message type={message?.type} text={message?.text} />
-
-      <Tabs 
-        tabs={tabConfig} 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-      />
-
-      {activeTab === 'canisters' && (
-        <div className="tab-section">
-          <h2>Canister Management</h2>
-          <div className="manager-toggle">
-            <button onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Creating...' : 'Create Canister'}
-            </button>
-          </div>
-
-          <CanisterList canisters={canisters} />
-        </div>
-      )}
-
-      {activeTab === 'files' && (
-        <div className="tab-section">
-          <h2>File Management</h2>
-          
-          <FileUploadForm 
-            onSubmit={handleFileUpload}
-            onFileSelect={handleFileSelect}
-            onFileNameChange={(e) => setFileName(e.target.value)}
-            fileName={fileName}
-            selectedFile={selectedFile}
-            isLoading={fileLoading}
-          />
-
-          {files.length > 0 ? (
-            <div className="file-list">
-              <h3>Your Files</h3>
-              <ul>
-                {files.map((file, index) => (
-                  <FileItem 
-                    key={index}
-                    file={file}
-                    onView={() => handleViewFile(file.id)}
-                    onDelete={() => handleFileDelete(file.id)}
-                    isLoading={fileLoading}
-                  />
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="no-files">
-              <p>You haven't uploaded any files yet.</p>
-            </div>
-          )}
-
-          {fileContent && (
-            <FilePreview 
-              fileContent={fileContent}
-              onClose={closeFilePreview}
-              onDownload={handleDownload}
-            />
-          )}
-        </div>
-      )}
-    </main>
-  );
+  return {
+    files,
+    fileContent,
+    loading,
+    message,
+    fetchFiles,
+    uploadFile,
+    deleteFile,
+    viewFile,
+    closeFilePreview,
+    downloadFile,
+    setMessage
+  };
 }
-
-export default App;
