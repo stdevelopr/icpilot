@@ -37,4 +37,13 @@ module {
   public type CanisterStorage = [(Principal, List.List<CanisterInfo>)];
   public type FileMetadataStorage = [(Text, FileMetadata)];
   public type FileContentStorage = [(Text, FileContent)];
+  // Canister status information
+  public type CanisterStatusInfo = {
+    status : Text;
+    memory_size : Nat;
+    cycles : Nat;
+    freezing_threshold : Nat;
+    idle_cycles_burned_per_day : Nat;
+    module_hash : ?[Nat8];
+  };
 };

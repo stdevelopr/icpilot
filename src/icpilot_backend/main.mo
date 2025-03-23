@@ -3,6 +3,7 @@ import Principal "mo:base/Principal";
 import Debug "mo:base/Debug";
 import Result "mo:base/Result";
 import Blob "mo:base/Blob";
+import Array "mo:base/Array"; // Add this import for Array module
 
 import Types "Types";
 import CanisterManager "CanisterManager";
@@ -95,9 +96,60 @@ actor Manager {
   public shared (msg) func deleteFile(fileId : Text) : async Result.Result<(), Text> {
     fileManager.deleteFile(msg.caller, fileId);
   };
-  
+
   // Function to get folder structure for the caller
   public shared (msg) func getFolderStructure() : async [Text] {
     fileManager.getFolderStructure(msg.caller);
+  };
+
+  // Function to get cycles information for a specific canister
+  public shared func getCanisterCycles(canister_id : Text) : async Result.Result<Nat, Text> {
+    switch (await canisterManager.get_canister_status(ic, canister_id)) {
+      case (#ok(statusInfo)) {
+        #ok(statusInfo.cycles);
+      };
+      case (#err(e)) {
+        #err(e);
+      };
+    };
+  };
+
+  // Function to get detailed status information for a specific canister
+  public shared func getCanisterStatus(canister_id : Text) : async Result.Result<Types.CanisterStatusInfo, Text> {
+    await canisterManager.get_canister_status(ic, canister_id);
+  };
+
+  // Function to get cycles information for all canisters of the caller
+  public shared (msg) func getCallerCanistersCycles() : async [(Text, Result.Result<Nat, Text>)] {
+    let canisters = canisterManager.get_caller_canisters(msg.caller);
+    var results : [(Text, Result.Result<Nat, Text>)] = [];
+
+    for (canister in canisters.vals()) {
+      let status_result = await canisterManager.get_canister_status(ic, canister.id);
+      let cycles_result = switch (status_result) {
+        case (#ok(statusInfo)) {
+          #ok(statusInfo.cycles);
+        };
+        case (#err(e)) {
+          #err(e);
+        };
+      };
+      results := Array.append(results, [(canister.id, cycles_result)]);
+    };
+
+    return results;
+  };
+
+  // Function to get status information for all canisters of the caller
+  public shared (msg) func getCallerCanistersStatus() : async [(Text, Result.Result<Types.CanisterStatusInfo, Text>)] {
+    let canisters = canisterManager.get_caller_canisters(msg.caller);
+    var results : [(Text, Result.Result<Types.CanisterStatusInfo, Text>)] = [];
+
+    for (canister in canisters.vals()) {
+      let status_result = await canisterManager.get_canister_status(ic, canister.id);
+      results := Array.append(results, [(canister.id, status_result)]);
+    };
+
+    return results;
   };
 };

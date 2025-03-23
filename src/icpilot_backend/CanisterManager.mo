@@ -16,7 +16,7 @@ module {
   public class CanisterManager(IC_ACTOR : Interface.Self) {
     // A hash map to store canister information for each principal (user)
     private let canisterStorage = HashMap.HashMap<Principal, List.List<Types.CanisterInfo>>(10, Principal.equal, Principal.hash);
-    
+
     // A variable to store the canister map, which is used for stable storage across upgrades
     private var canisterMap : Types.CanisterStorage = [];
 
@@ -108,5 +108,32 @@ module {
         return "Error depositing cycles.";
       };
     };
+
+    // Function to get canister status including cycles information
+    // Function to get detailed canister status information
+    public func get_canister_status(IC_ACTOR : Interface.Self, canister_id_text : Text) : async Result.Result<Types.CanisterStatusInfo, Text> {
+      try {
+        let canister_id = Principal.fromText(canister_id_text);
+        let status = await IC_ACTOR.canister_status({ canister_id });
+        
+        // Convert status variant to text
+        let statusText = switch (status.status) {
+          case (#running) "running";
+          case (#stopping) "stopping";
+          case (#stopped) "stopped";
+        };
+        
+        return #ok({
+          status = statusText;
+          memory_size = status.memory_size;
+          cycles = status.cycles;
+          freezing_threshold = status.settings.freezing_threshold;
+          idle_cycles_burned_per_day = status.idle_cycles_burned_per_day;
+          module_hash = status.module_hash;
+        });
+      } catch (e) {
+        return #err("Error getting canister status");
+      };
+    };
   };
-}
+};

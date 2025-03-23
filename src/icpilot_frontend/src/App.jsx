@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { icpilot_backend } from 'declarations/icpilot_backend';
-import { convertBigIntValues } from './utils';
+import { convertBigIntValues, formatCycles, formatCanisterStatus } from './utils';
 import Message from './components/UI/Message';
 import Tabs from './components/UI/Tabs';
 import FileTree from './components/File/FileTree';
@@ -10,6 +10,8 @@ import CanisterList from './components/Canister/CanisterList';
 
 function App() {
   const [canisters, setCanisters] = useState([]);
+  const [canisterCycles, setCanisterCycles] = useState({});
+  const [canisterStatus, setCanisterStatus] = useState({});
   const [files, setFiles] = useState([]);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,8 +31,52 @@ function App() {
     try {
       const userCanisters = await icpilot_backend.get_caller_canisters();
       setCanisters(userCanisters);
+      
+      // Fetch cycles and status for each canister
+      if (userCanisters && userCanisters.length > 0) {
+        fetchCanisterCycles();
+        fetchCanisterStatus();
+      }
     } catch (error) {
       console.error("Error fetching canisters:", error);
+    }
+  }
+  
+  async function fetchCanisterCycles() {
+    try {
+      const cyclesData = await icpilot_backend.getCallerCanistersCycles();
+      const cyclesMap = {};
+      
+      cyclesData.forEach(([canisterId, cyclesResult]) => {
+        if ('ok' in cyclesResult) {
+          cyclesMap[canisterId] = cyclesResult.ok;
+        } else {
+          cyclesMap[canisterId] = null; // Indicates error fetching cycles
+        }
+      });
+      
+      setCanisterCycles(cyclesMap);
+    } catch (error) {
+      console.error("Error fetching canister cycles:", error);
+    }
+  }
+  
+  async function fetchCanisterStatus() {
+    try {
+      const statusData = await icpilot_backend.getCallerCanistersStatus();
+      const statusMap = {};
+      
+      statusData.forEach(([canisterId, statusResult]) => {
+        if ('ok' in statusResult) {
+          statusMap[canisterId] = convertBigIntValues(statusResult.ok);
+        } else {
+          statusMap[canisterId] = null; // Indicates error fetching status
+        }
+      });
+      
+      setCanisterStatus(statusMap);
+    } catch (error) {
+      console.error("Error fetching canister status:", error);
     }
   }
 
@@ -143,6 +189,7 @@ function App() {
       setFileName('');
     } catch (error) {
       setMessage({ type: 'error', text: `Error: ${error.message}` });
+    } finally {
       setFileLoading(false);
     }
   }
@@ -268,7 +315,6 @@ function App() {
     setFileContent(null);
   }
 
-  // Add this function to handle direct downloads
   // Improved download function
   function handleDownload() {
     if (fileContent && fileContent.blob) {
@@ -334,7 +380,11 @@ function App() {
             </button>
           </div>
 
-          <CanisterList canisters={canisters} />
+          <CanisterList 
+            canisters={canisters} 
+            canisterCycles={canisterCycles} 
+            canisterStatus={canisterStatus}
+          />
         </div>
       )}
 
