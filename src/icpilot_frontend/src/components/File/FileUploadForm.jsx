@@ -6,15 +6,27 @@ const FileUploadForm = ({
   onFileNameChange, 
   fileName, 
   selectedFile, 
-  isLoading 
+  isLoading,
+  currentFolder
 }) => {
   return (
     <form onSubmit={onSubmit} className="file-upload-form">
       <div className="form-group">
-        <label htmlFor="file">Select File or Folder:</label>
+        <label htmlFor="file">Select File:</label>
         <input 
           type="file" 
           id="file" 
+          onChange={onFileSelect} 
+          disabled={isLoading}
+          multiple
+        />
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="directory">Or Select Folder:</label>
+        <input 
+          type="file" 
+          id="directory" 
           onChange={onFileSelect} 
           disabled={isLoading}
           webkitdirectory=""
@@ -34,6 +46,12 @@ const FileUploadForm = ({
           disabled={isLoading}
         />
       </div>
+      
+      {currentFolder && (
+        <div className="current-folder">
+          <p>Current folder: {currentFolder}</p>
+        </div>
+      )}
       
       <button type="submit" disabled={isLoading || !selectedFile}>
         {isLoading ? 'Uploading...' : 'Upload File'}

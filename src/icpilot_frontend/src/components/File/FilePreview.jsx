@@ -8,6 +8,48 @@ const FilePreview = ({ fileContent, onClose, onDownload }) => {
   const isVideo = fileContent.contentType.startsWith('video/');
   const isAudio = fileContent.contentType.startsWith('audio/');
   const isJson = fileContent.contentType === 'application/json';
+  const isHtml = fileContent.contentType === 'text/html';
+  
+  // For text content
+  const [textContent, setTextContent] = useState('');
+  // For data URL
+  const [dataUrl, setDataUrl] = useState('');
+  
+  // Convert blob to data URL for better CSP compatibility
+  useEffect(() => {
+    if (fileContent.blob) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setDataUrl(reader.result);
+      };
+      reader.readAsDataURL(fileContent.blob);
+    }
+  }, [fileContent.blob]);
+  
+  // Load text content if needed
+  useEffect(() => {
+    if ((isText || isJson || isHtml) && fileContent.blob) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (isJson) {
+          try {
+            const parsed = JSON.parse(reader.result);
+            setTextContent(JSON.stringify(parsed, null, 2));
+          } catch (error) {
+            console.error('Error parsing JSON:', error);
+            setTextContent('Error: Invalid JSON content');
+          }
+        } else {
+          setTextContent(reader.result);
+        }
+      };
+      reader.onerror = () => {
+        console.error('Error reading file:', reader.error);
+        setTextContent('Error: Unable to read file content');
+      };
+      reader.readAsText(fileContent.blob);
+    }
+  }, [fileContent.blob, isText, isJson, isHtml]);
 
   return (
     <div className="file-preview-overlay">
@@ -18,72 +60,59 @@ const FilePreview = ({ fileContent, onClose, onDownload }) => {
         </div>
         
         <div className="file-preview-content">
-          {isImage && (
-            <img src={fileContent.url} alt={fileContent.name} />
+          {isImage && dataUrl && (
+            <img src={dataUrl} alt={fileContent.name} className={styles.previewImage} />
           )}
           
           {isPdf && (
-            <iframe 
-              src={fileContent.url} 
-              title={fileContent.name}
-              width="100%" 
-              height="500px"
-            />
+            <div className={styles.pdfContainer}>
+              <p>PDF files cannot be previewed directly due to security restrictions.</p>
+              <button onClick={onDownload} className="download-button">
+                Download to view PDF
+              </button>
+            </div>
           )}
           
-          {isText && (
-            <iframe 
-              src={fileContent.url} 
-              title={fileContent.name}
-              width="100%" 
-              height="500px"
-            />
+          {isText && !isJson && !isHtml && (
+            <pre className={styles.textPreview}>
+              {textContent}
+            </pre>
           )}
           
-          {isVideo && (
-            <video controls width="100%">
-              <source src={fileContent.url} type={fileContent.contentType} />
+          {isVideo && dataUrl && (
+            <video controls width="100%" className={styles.previewVideo}>
+              <source src={dataUrl} type={fileContent.contentType} />
               Your browser does not support the video tag.
             </video>
           )}
           
-          {isAudio && (
-            <audio controls>
-              <source src={fileContent.url} type={fileContent.contentType} />
+          {isAudio && dataUrl && (
+            <audio controls className={styles.previewAudio}>
+              <source src={dataUrl} type={fileContent.contentType} />
               Your browser does not support the audio tag.
             </audio>
           )}
           
-          {isJson && (() => {
-            const [jsonContent, setJsonContent] = useState('Loading...');
-            
-            useEffect(() => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                try {
-                  const parsed = JSON.parse(reader.result);
-                  setJsonContent(JSON.stringify(parsed, null, 2));
-                } catch (error) {
-                  console.error('Error parsing JSON:', error);
-                  setJsonContent('Error: Invalid JSON content');
-                }
-              };
-              reader.onerror = () => {
-                console.error('Error reading file:', reader.error);
-                setJsonContent('Error: Unable to read file content');
-              };
-              reader.readAsText(fileContent.blob);
-            }, [fileContent.blob]);
-
-            return (
-              <pre className={styles['json-preview']}>
-                {jsonContent}
-              </pre>
-            );
-          })()}
+          {isJson && (
+            <pre className={styles.jsonPreview}>
+              {textContent}
+            </pre>
+          )}
           
-          {!isImage && !isPdf && !isText && !isVideo && !isAudio && !isJson && (
-            <div className="download-prompt">
+          {isHtml && (
+            <div className={styles.htmlPreviewContainer}>
+              <p>HTML files cannot be previewed directly due to security restrictions.</p>
+              <button onClick={onDownload} className="download-button">
+                Download to view HTML
+              </button>
+              <div className={styles.htmlPreview}>
+                <pre>{textContent}</pre>
+              </div>
+            </div>
+          )}
+          
+          {!isImage && !isPdf && !isText && !isVideo && !isAudio && !isJson && !isHtml && (
+            <div className={styles.downloadPrompt}>
               <p>This file type cannot be previewed directly.</p>
               <button onClick={onDownload}>Download File</button>
             </div>
@@ -94,6 +123,11 @@ const FilePreview = ({ fileContent, onClose, onDownload }) => {
           <button onClick={onDownload} className="download-button">
             Download
           </button>
+          {fileContent.path && (
+            <div className={styles.filePathInfo}>
+              <p>Path: {fileContent.path}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

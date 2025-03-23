@@ -178,22 +178,22 @@ function App() {
         return;
       }
       
+      console.log("Viewing file:", file);
+      
       const content = await icpilot_backend.getFileContent(fileId);
       
       if (content) {
-        console.log("Raw content:", content);
-        
         // Use the metadata from our files state which is already processed
         const processedMetadata = file.metadata;
-        
-        // Log the metadata to debug
-        console.log("File metadata:", processedMetadata);
         
         // Ensure contentType exists, default to 'application/octet-stream' if not
         const contentType = processedMetadata.contentType || 'application/octet-stream';
         
         // Make sure we have a valid file name
         const fileName = processedMetadata.name || 'Unknown File';
+        
+        // Get the full path for display
+        const filePath = processedMetadata.path || '';
         
         // Extract all byte values from the nested structure
         let bytes = [];
@@ -211,21 +211,11 @@ function App() {
         
         extractBytes(content);
         
-        console.log("Extracted bytes length:", bytes.length);
-        
         // Create a Uint8Array from the extracted bytes
         const uint8Array = new Uint8Array(bytes);
         
         // Create a blob with the content type
         const blob = new Blob([uint8Array], { type: contentType });
-        
-        console.log("File preview data:", {
-          name: fileName,
-          contentType: contentType,
-          size: processedMetadata.size,
-          blobSize: blob.size,
-          extractedBytesLength: bytes.length
-        });
         
         // Test the blob content
         if (blob.size > 0) {
@@ -236,6 +226,7 @@ function App() {
             url,
             contentType,
             name: fileName,
+            path: filePath,
             blob, // Store the blob for direct download
             fileId // Store the fileId for reference
           });
