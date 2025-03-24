@@ -7,6 +7,8 @@ import FileTree from './components/File/FileTree';
 import FileUploadForm from './components/File/FileUploadForm';
 import FilePreview from './components/File/FilePreview';
 import CanisterList from './components/Canister/CanisterList';
+import CanisterInfo from './components/UI/CanisterInfo';
+import UserProfile from './components/User/UserProfile';
 
 function App() {
   const [canisters, setCanisters] = useState([]);
@@ -362,7 +364,8 @@ function App() {
       <img src="/logo2.svg" alt="DFINITY logo" />
       <br />
       <br />
-      
+      <CanisterInfo />
+      <UserProfile />
       <Message type={message?.type} text={message?.text} />
 
       <Tabs 

@@ -1,0 +1,55 @@
+To deploy the ledger locally:
+Create a canister:
+
+"icp_ledger_canister": {
+    "type": "custom",
+    "candid": "https://raw.githubusercontent.com/dfinity/ic/4833f30d3b5afd84a385dfb146581580285d8a7e/rs/ledger_suite/icp/ledger.did",
+    "wasm": "https://download.dfinity.systems/ic/4833f30d3b5afd84a385dfb146581580285d8a7edfx/canisters/ledger-canister.wasm.gz",
+    "remote": {
+    "id": {
+        "ic": "ryjl3-tyaaa-aaaaa-aaaba-cai"
+    }
+    }
+}
+
+create a minting account - Transfers made from this account will mint tokens. Transfers made to this account will burn tokens
+
+export MINTER_ACCOUNT_ID=$(dfx ledger account-id)
+export DEFAULT_ACCOUNT_ID=$(dfx ledger account-id)
+
+Deploy:
+
+dfx deploy --specified-id ryjl3-tyaaa-aaaaa-aaaba-cai icp_ledger_canister --argument "
+  (variant {
+    Init = record {
+      minting_account = \"$MINTER_ACCOUNT_ID\";
+      initial_values = vec {
+        record {
+          \"$DEFAULT_ACCOUNT_ID\";
+          record {
+            e8s = 10_000_000_000 : nat64;
+          };
+        };
+      };
+      send_whitelist = vec {};
+      transfer_fee = opt record {
+        e8s = 10_000 : nat64;
+      };
+      token_symbol = opt \"LICP\";
+      token_name = opt \"Local ICP\";
+    }
+  })
+"
+
+
+To verify the balance of one account:
+dfx ledger balance $(dfx ledger account-id)
+
+To transfer tokens from one account to another:
+dfx ledger transfer --amount AMOUNT --memo MEMO RECEIVER_ACCOUNT_ID
+*MEMO refers to a 64-bit numeric value
+
+To transfer from the mint account the fee needs to be set to 0:
+
+E.g:
+dfx ledger transfer --memo 1 952f6c80b4f304692a671db764a486073970574b3f51866cbe89678a993d8e4d --fee 0

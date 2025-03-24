@@ -1,0 +1,73 @@
+.userBalanceContainer {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.userBalanceContainer h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.balanceInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.balanceAmount {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #28a745;
+  margin: 15px 0;
+}
+
+.balanceValue {
+  background-color: #e9f7ef;
+  padding: 10px 20px;
+  border-radius: 4px;
+  border: 1px solid #d4edda;
+}
+
+.balanceDetails {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.balanceDetails p {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.refreshButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refreshButton:hover {
+  background-color: #0069d9;
+}
+
+@media (max-width: 768px) {
+  .balanceDetails {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .refreshButton {
+    width: 100%;
+  }
+}

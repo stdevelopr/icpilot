@@ -1,0 +1,70 @@
+.userProfileContainer {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.userProfileContainer h2 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.profileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profileSection {
+  background-color: white;
+  padding: 15px;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+}
+
+.profileSection h3 {
+  margin-top: 0;
+  color: #007bff;
+  font-size: 1.2rem;
+}
+
+.profileSection p {
+  margin: 8px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.profileSection strong {
+  color: #555;
+}
+
+.refreshButton {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  align-self: flex-end;
+  margin-top: 10px;
+}
+
+.refreshButton:hover {
+  background-color: #0069d9;
+}
+
+@media (max-width: 768px) {
+  .profileInfo {
+    gap: 15px;
+  }
+  
+  .refreshButton {
+    width: 100%;
+    margin-top: 15px;
+  }
+}

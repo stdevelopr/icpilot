@@ -306,6 +306,41 @@ button[type="submit"] {
   background-color: #0069d9;
 }
 
+/* Canister Info Banner */
+.canister-info-banner {
+  display: flex;
+  justify-content: space-between;
+  background-color: #f0f8ff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+}
+
+.canister-info-item {
+  padding: 5px 10px;
+  font-size: 0.9rem;
+}
+
+.canister-info-item strong {
+  margin-right: 5px;
+  color: #333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .canister-info-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .canister-info-item {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   main {
