@@ -39,6 +39,7 @@ module {
   public type FileContentStorage = [(Text, FileContent)];
   
   // Canister status information
+  // Add controllers field to the CanisterStatusInfo type
   public type CanisterStatusInfo = {
     status : Text;
     memory_size : Nat;
@@ -46,6 +47,7 @@ module {
     freezing_threshold : Nat;
     idle_cycles_burned_per_day : Nat;
     module_hash : ?[Nat8];
+    controllers : [Principal]; // Add this field
   };
   
   // User information type

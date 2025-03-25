@@ -9,30 +9,33 @@ export function convertBigIntValues(obj) {
   }
   
   if (typeof obj === 'bigint') {
-    // Convert BigInt to Number if it's within safe integer range
-    if (obj <= Number.MAX_SAFE_INTEGER && obj >= Number.MIN_SAFE_INTEGER) {
-      return Number(obj);
-    }
-    // Otherwise convert to string to preserve value
-    return obj.toString();
-  }
-  
-  if (typeof obj !== 'object') {
-    return obj;
+    return Number(obj);
   }
   
   if (Array.isArray(obj)) {
     return obj.map(item => convertBigIntValues(item));
   }
   
-  const result = {};
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      result[key] = convertBigIntValues(obj[key]);
+  if (typeof obj === 'object') {
+    const result = {};
+    for (const key in obj) {
+      // Special handling for controllers array - preserve full principal strings
+      if (key === 'controllers' && Array.isArray(obj[key])) {
+        result[key] = obj[key].map(controller => {
+          // Convert principal objects to full strings without truncation
+          if (controller && typeof controller === 'object' && controller.toString) {
+            return controller.toString();
+          }
+          return controller;
+        });
+      } else {
+        result[key] = convertBigIntValues(obj[key]);
+      }
     }
+    return result;
   }
   
-  return result;
+  return obj;
 }
 
 /**
@@ -101,6 +104,7 @@ export function formatCanisterStatus(statusInfo) {
     idleBurnRate: `${formatCycles(statusInfo.idle_cycles_burned_per_day)}/day`,
     moduleHash: statusInfo.module_hash ? 
       `${statusInfo.module_hash.slice(0, 10).map(b => b.toString(16).padStart(2, '0')).join('')}...` : 
-      "No hash available"
+      "No hash available",
+    controllers: statusInfo.controllers || [] // Add controllers
   };
 }

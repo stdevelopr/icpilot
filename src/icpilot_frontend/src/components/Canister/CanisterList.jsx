@@ -11,6 +11,26 @@ const CanisterList = ({ canisters, canisterCycles = {}, canisterStatus = {} }) =
     );
   }
 
+  // Helper function to format principal IDs
+  // Replace the formatPrincipal function with this one that doesn't truncate
+  const formatPrincipal = (principal) => {
+    if (!principal) return 'Unknown';
+    
+    // Check if principal is an object with toString method
+    if (typeof principal === 'object' && principal !== null) {
+      // Get the full principal text representation
+      try {
+        return principal.toString();
+      } catch (e) {
+        console.error("Error formatting principal:", e);
+        return "Invalid Principal";
+      }
+    }
+    
+    // If it's already a string, return the full string
+    return String(principal);
+  };
+
   return (
     <div className={styles.canisterList}>
       <h3>Your Canisters</h3>
@@ -46,6 +66,19 @@ const CanisterList = ({ canisters, canisterCycles = {}, canisterStatus = {} }) =
                     <p>Idle Burn Rate: {formatCycles(status.idle_cycles_burned_per_day)}/day</p>
                     {status.module_hash && (
                       <p>Module Hash: {status.module_hash.slice(0, 10).map(b => b.toString(16).padStart(2, '0')).join('')}...</p>
+                    )}
+                    {/* Add controllers section */}
+                    {status.controllers && status.controllers.length > 0 && (
+                      <div className={styles.controllersSection}>
+                        <p>Controllers:</p>
+                        <ul className={styles.controllersList}>
+                          {status.controllers.map((controller, idx) => (
+                            <li key={idx} className={styles.controllerItem}>
+                              {formatPrincipal(controller)}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </>
                 ) : (

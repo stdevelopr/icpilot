@@ -111,6 +111,7 @@ module {
 
     // Function to get canister status including cycles information
     // Function to get detailed canister status information
+    // In the get_canister_status function, update the return value to include controllers
     public func get_canister_status(IC_ACTOR : Interface.Self, canister_id_text : Text) : async Result.Result<Types.CanisterStatusInfo, Text> {
       try {
         let canister_id = Principal.fromText(canister_id_text);
@@ -130,6 +131,7 @@ module {
           freezing_threshold = status.settings.freezing_threshold;
           idle_cycles_burned_per_day = status.idle_cycles_burned_per_day;
           module_hash = status.module_hash;
+          controllers = status.settings.controllers; // Add controllers from settings
         });
       } catch (e) {
         return #err("Error getting canister status");
