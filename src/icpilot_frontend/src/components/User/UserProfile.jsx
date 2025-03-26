@@ -47,7 +47,7 @@ const UserProfile = () => {
           principal.split(": ")[1] : principal;
         
         // Get balance
-        const icpBalance = await icpilot_backend.get_user_balance();
+        const icpBalance = await icpilot_backend.userGetBalance();
         
         // Get canisters
         const canisters = await icpilot_backend.get_caller_canisters();

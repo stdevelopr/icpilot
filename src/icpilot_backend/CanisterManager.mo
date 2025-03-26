@@ -8,6 +8,7 @@ import Iter "mo:base/Iter"; // Import for iteration utilities
 import Array "mo:base/Array"; // Import for array operations
 import Result "mo:base/Result"; // Import for handling results, which can be success or error
 import Text "mo:base/Text"; // Import for text operations
+import Nat8 "mo:base/Nat8";
 import Types "Types"; // Import custom types defined in the Types module
 
 // Define a module containing the CanisterManager class
@@ -116,14 +117,14 @@ module {
       try {
         let canister_id = Principal.fromText(canister_id_text);
         let status = await IC_ACTOR.canister_status({ canister_id });
-        
+
         // Convert status variant to text
         let statusText = switch (status.status) {
           case (#running) "running";
           case (#stopping) "stopping";
           case (#stopped) "stopped";
         };
-        
+
         return #ok({
           status = statusText;
           memory_size = status.memory_size;

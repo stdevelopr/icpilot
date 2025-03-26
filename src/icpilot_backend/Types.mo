@@ -37,7 +37,7 @@ module {
   public type CanisterStorage = [(Principal, List.List<CanisterInfo>)];
   public type FileMetadataStorage = [(Text, FileMetadata)];
   public type FileContentStorage = [(Text, FileContent)];
-  
+
   // Canister status information
   // Add controllers field to the CanisterStatusInfo type
   public type CanisterStatusInfo = {
@@ -49,11 +49,11 @@ module {
     module_hash : ?[Nat8];
     controllers : [Principal]; // Add this field
   };
-  
+
   // User information type
   public type UserInfo = {
-    principal : Principal;
-    principalText : Text;
+    principal : Text;
+    accountId : Text;
     icpBalance : Nat64;
     canisterCount : Nat;
     filesCount : Nat;

@@ -15,7 +15,7 @@ const UserBalance = () => {
   const fetchUserBalance = async () => {
     try {
       setLoading(true);
-      const userBalance = await icpilot_backend.get_user_balance();
+      const userBalance = await icpilot_backend.userGetBalance();
       setBalance(userBalance);
       setLoading(false);
     } catch (error) {

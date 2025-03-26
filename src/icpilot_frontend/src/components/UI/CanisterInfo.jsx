@@ -24,7 +24,7 @@ const CanisterInfo = () => {
       const cycles = 'ok' in cyclesResult ? cyclesResult.ok : null;
 
       // Get user balance
-      const userBalance = await icpilot_backend.get_user_balance();
+      const userBalance = await icpilot_backend.userGetBalance();
       
       setCanisterInfo({
         canisterId,

@@ -4,6 +4,7 @@ import Debug "mo:base/Debug";
 import Result "mo:base/Result";
 import Blob "mo:base/Blob";
 import Array "mo:base/Array"; // Add this import for Array module
+import Nat8 "mo:base/Nat8";
 
 import Types "Types";
 import CanisterManager "CanisterManager";
@@ -11,6 +12,7 @@ import FileManager "FileManager";
 import Ledger "canister:icp_ledger_canister";
 import Nat64 "mo:base/Nat64";
 import Time "mo:base/Time";
+import UserManager "UserManager";
 
 // Define the Manager actor
 actor Manager {
@@ -21,6 +23,7 @@ actor Manager {
   // Initialize managers for canister and file operations
   let canisterManager = CanisterManager.CanisterManager(ic);
   let fileManager = FileManager.FileManager();
+  let userManager = UserManager.UserManager(canisterManager, fileManager);
 
   // Stable storage variables to persist data across upgrades
   stable var canisterMap : Types.CanisterStorage = [];
@@ -46,11 +49,6 @@ actor Manager {
   // Function to create a new canister
   public shared (msg) func create_canister(name : Text, description : Text) : async Result.Result<Text, Text> {
     await canisterManager.create_canister(msg.caller, name, description);
-  };
-
-  // Function to get canisters associated with the caller
-  public shared (msg) func get_caller_canisters() : async [Types.CanisterInfo] {
-    canisterManager.get_caller_canisters(msg.caller);
   };
 
   // Function to get all canisters
@@ -156,85 +154,15 @@ actor Manager {
     return results;
   };
 
-  // Function to get the ICP balance for a user
-  public shared (msg) func getICPBalance() : async Result.Result<Nat64, Text> {
-    try {
-      let account = {
-        owner = msg.caller;
-        subaccount = null;
-      };
-      let balance = await Ledger.icrc1_balance_of(account);
-      return #ok(Nat64.fromNat(balance));
-    } catch (e) {
-      return #err("Error getting ICP balance");
-    };
+  // USER MANAGER FUNCTIONS
+  //***************************************************************************
+  // Returns the user's information, including their principal, accountId and balance in e8s format
+  public shared (msg) func userGetCondensedInfo() : async Types.UserInfo {
+    return await userManager.getUserInfo(msg.caller);
   };
 
-  // Function to get the user's balance in e8s format
-  public shared (msg) func get_user_balance() : async Nat64 {
-    try {
-      let account = {
-        owner = msg.caller;
-        subaccount = null;
-      };
-      let balance = await Ledger.icrc1_balance_of(account);
-      return Nat64.fromNat(balance);
-    } catch (e) {
-      Debug.print("Error getting user balance");
-      return 0;
-    };
-  };
-
-  // Function to get the caller's principal
-  public shared (msg) func getCallerPrincipal() : async Text {
-    return Principal.toText(msg.caller);
-  };
-
-  // Function to get comprehensive user information
-  // Function to get comprehensive user information
-  public shared (msg) func get_user_info() : async Types.UserInfo {
-    try {
-      // Get user principal
-      let userPrincipal = msg.caller;
-      let principalText = Principal.toText(userPrincipal);
-
-      // Get user ICP balance
-      let account = {
-        owner = userPrincipal;
-        subaccount = null;
-      };
-      let balance = await Ledger.icrc1_balance_of(account);
-      let icpBalance = Nat64.fromNat(balance);
-
-      // Get user canisters count
-      let userCanisters = canisterManager.get_caller_canisters(userPrincipal);
-      let canisterCount = userCanisters.size();
-
-      // Get user files count
-      let userFiles = fileManager.getMyFiles(userPrincipal);
-      let filesCount = userFiles.size();
-
-      // Current timestamp
-      let lastActive = Time.now();
-
-      return {
-        principal = userPrincipal;
-        principalText = principalText;
-        icpBalance = icpBalance;
-        canisterCount = canisterCount;
-        filesCount = filesCount;
-        lastActive = lastActive;
-      };
-    } catch (e) {
-      Debug.print("Error getting user info");
-      return {
-        principal = msg.caller;
-        principalText = Principal.toText(msg.caller);
-        icpBalance = 0;
-        canisterCount = 0;
-        filesCount = 0;
-        lastActive = Time.now();
-      };
-    };
+  // Function to get canisters associated with the caller
+  public shared (msg) func userGetCanisters() : async [Types.CanisterInfo] {
+    return userManager.getCanisters(msg.caller);
   };
 };
