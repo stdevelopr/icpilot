@@ -59,4 +59,15 @@ module {
     filesCount : Nat;
     lastActive : Int;
   };
+
+  // A comprehensive type that combines canister info and status for frontend use
+  public type CanisterFullInfo = {
+    id : Text;
+    name : Text;
+    description : Text;
+    status : Text;
+    cycles : Nat;
+    memory_size : Nat;
+    controllers : [Principal];
+  };
 };

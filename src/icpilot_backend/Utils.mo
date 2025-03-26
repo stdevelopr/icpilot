@@ -1,6 +1,7 @@
 import Nat8 "mo:base/Nat8";
 import Text "mo:base/Text";
 import Time "mo:base/Time";
+import Principal "mo:base/Principal";
 
 module {
     // Convert byte array to hexadecimal string

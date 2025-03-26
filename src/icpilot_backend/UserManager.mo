@@ -52,11 +52,6 @@ class UserManager(canisterManager : CanisterManager.CanisterManager, fileManager
         let userCanisters = canisterManager.get_caller_canisters(userPrincipal);
         return userCanisters.size();
     };
-    
-    // Get user canisters - expose this functionality directly
-    public func getCanisters(userPrincipal : Principal) : [Types.CanisterInfo] {
-        return canisterManager.get_caller_canisters(userPrincipal);
-    };
 
     // Get user files count
     func getFilesCount(userPrincipal : Principal) : Nat {
